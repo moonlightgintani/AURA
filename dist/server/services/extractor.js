@@ -4,25 +4,27 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 const { formatBytes, formatDuration } = require('./security');
-const { MAX_DOWNLOAD_SIZE_BYTES } = require('../config');
+const { MAX_DOWNLOAD_SIZE_BYTES, getExtractorCmd } = require('../config');
 
 /**
  * Extracts metadata and permitted formats using yt-dlp or direct stream headers.
  */
 async function extractMetadata(targetUrl) {
   return new Promise((resolve, reject) => {
+    const { cmd, baseArgs } = getExtractorCmd();
+
     // Arguments for yt-dlp
     const args = [
-      '-m', 'yt_dlp',
+      ...baseArgs,
       '--dump-single-json',
       '--no-warnings',
       '--no-playlist',
       '--no-check-certificates',
-      '--socket-timeout', '15',
+      '--socket-timeout', '20',
       targetUrl
     ];
 
-    const child = spawn('python', args, {
+    const child = spawn(cmd, args, {
       windowsHide: true
     });
 
@@ -45,13 +47,15 @@ async function extractMetadata(targetUrl) {
 
     child.on('error', (err) => {
       clearTimeout(timeoutId);
-      reject(new Error(`Failed to execute metadata extractor engine: ${err.message}`));
+      reject(new Error(`Failed to execute metadata extractor engine (${cmd}): ${err.message}`));
     });
 
     child.on('close', async (code) => {
       clearTimeout(timeoutId);
 
-      if (code !== 0 || !stdoutData.trim()) {
+      const trimmedStdout = stdoutData.trim();
+
+      if (code !== 0 || !trimmedStdout) {
         const stderrLower = (stderrData || '').toLowerCase();
 
         // Check for specific restriction reasons
@@ -86,7 +90,15 @@ async function extractMetadata(targetUrl) {
       }
 
       try {
-        const rawJson = JSON.parse(stdoutData);
+        let rawJson;
+        const jsonStart = trimmedStdout.indexOf('{');
+        const jsonEnd = trimmedStdout.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+          const jsonSub = trimmedStdout.substring(jsonStart, jsonEnd + 1);
+          rawJson = JSON.parse(jsonSub);
+        } else {
+          rawJson = JSON.parse(trimmedStdout);
+        }
         const processed = processExtractedInfo(rawJson, targetUrl);
         resolve(processed);
       } catch (err) {

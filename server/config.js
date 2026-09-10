@@ -20,24 +20,69 @@ const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10
 // Allowed protocols
 const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 
-const { execSync } = require('child_process');
-const fs = require('fs');
+// Detect Python / yt-dlp binary (supports yt-dlp CLI, python3, python, or custom path)
+function getExtractorCmd() {
+  if (process.env.YTDLP_PATH) {
+    return { cmd: process.env.YTDLP_PATH, baseArgs: [] };
+  }
+  if (process.env.PYTHON_PATH) {
+    return { cmd: process.env.PYTHON_PATH, baseArgs: ['-m', 'yt_dlp'] };
+  }
 
-// Auto-detect FFmpeg path (supports imageio_ffmpeg, system PATH, or env variable)
+  // 1. Check if standalone yt-dlp CLI is available
+  try {
+    execSync('yt-dlp --version', { stdio: 'ignore', timeout: 2000, windowsHide: true });
+    return { cmd: 'yt-dlp', baseArgs: [] };
+  } catch (e) {}
+
+  // 2. Check python3
+  try {
+    execSync('python3 -c "import yt_dlp"', { stdio: 'ignore', timeout: 2000, windowsHide: true });
+    return { cmd: 'python3', baseArgs: ['-m', 'yt_dlp'] };
+  } catch (e) {}
+
+  // 3. Check python
+  try {
+    execSync('python -c "import yt_dlp"', { stdio: 'ignore', timeout: 2000, windowsHide: true });
+    return { cmd: 'python', baseArgs: ['-m', 'yt_dlp'] };
+  } catch (e) {}
+
+  // Fallback default
+  return { cmd: 'python3', baseArgs: ['-m', 'yt_dlp'] };
+}
+
+// Auto-detect FFmpeg path (supports system PATH, imageio_ffmpeg, or env variable)
 let FFMPEG_PATH = process.env.FFMPEG_PATH || null;
 if (!FFMPEG_PATH) {
   try {
-    const detected = execSync('python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"', {
-      encoding: 'utf8',
-      windowsHide: true,
-      stdio: ['pipe', 'pipe', 'ignore'],
-      timeout: 3000
-    }).trim();
-    if (detected && fs.existsSync(detected)) {
-      FFMPEG_PATH = detected;
-    }
+    execSync('ffmpeg -version', { stdio: 'ignore', timeout: 2000, windowsHide: true });
+    FFMPEG_PATH = 'ffmpeg';
   } catch (e) {
-    FFMPEG_PATH = null;
+    try {
+      const detected = execSync('python3 -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"', {
+        encoding: 'utf8',
+        windowsHide: true,
+        stdio: ['pipe', 'pipe', 'ignore'],
+        timeout: 3000
+      }).trim();
+      if (detected && fs.existsSync(detected)) {
+        FFMPEG_PATH = detected;
+      }
+    } catch (e2) {
+      try {
+        const detected = execSync('python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"', {
+          encoding: 'utf8',
+          windowsHide: true,
+          stdio: ['pipe', 'pipe', 'ignore'],
+          timeout: 3000
+        }).trim();
+        if (detected && fs.existsSync(detected)) {
+          FFMPEG_PATH = detected;
+        }
+      } catch (e3) {
+        FFMPEG_PATH = null;
+      }
+    }
   }
 }
 
@@ -52,5 +97,6 @@ module.exports = {
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX_REQUESTS,
   ALLOWED_PROTOCOLS,
-  FFMPEG_PATH
+  FFMPEG_PATH,
+  getExtractorCmd
 };

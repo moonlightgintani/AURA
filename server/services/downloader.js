@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const https = require('https');
-const { TEMP_DIR, MAX_DOWNLOAD_SIZE_BYTES, FFMPEG_PATH } = require('../config');
+const { TEMP_DIR, MAX_DOWNLOAD_SIZE_BYTES, FFMPEG_PATH, getExtractorCmd } = require('../config');
 const { sanitizeFilename, formatBytes } = require('./security');
 const { getJob, updateJob, cleanupJobFiles } = require('./jobManager');
 
@@ -19,10 +19,11 @@ function startDownload(jobId) {
   const isAudioOnly = job.ext === 'mp3' || job.ext === 'm4a';
   const targetExt = job.ext || 'mp4';
   const outputTemplate = path.join(TEMP_DIR, `${jobId}.%(ext)s`);
+  const { cmd, baseArgs } = getExtractorCmd();
 
   // Build yt-dlp arguments
   const args = [
-    '-m', 'yt_dlp',
+    ...baseArgs,
     '--no-playlist',
     '--no-warnings',
     '--no-check-certificates',

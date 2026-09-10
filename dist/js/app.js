@@ -148,7 +148,16 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ url })
       });
 
-      const result = await response.json();
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseErr) {
+        if (!response.ok) {
+          throw new Error(`Server returned HTTP ${response.status} (${response.statusText}).`);
+        }
+        throw new Error('Received non-JSON response from server.');
+      }
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to analyze media link.');
