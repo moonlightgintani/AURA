@@ -1,15 +1,8 @@
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
-PassengerAppRoot "/home/USERNAME/public_html"
+PassengerAppRoot "/home/YOUR_CPANEL_USER/aura.srecieee.org"
 PassengerBaseURI "/"
-PassengerNodejs "/home/USERNAME/nodevenv/public_html/20/bin/node"
+PassengerNodejs "/home/YOUR_CPANEL_USER/nodevenv/aura.srecieee.org/20/bin/node"
 PassengerAppType node
 PassengerStartupFile app.js
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
 
-# Enable URL Rewrite for Reverse Proxy if applicable
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ app.js [QSA,L]
-</IfModule>

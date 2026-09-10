@@ -55,6 +55,9 @@ const apiLimiter = rateLimit({
 app.use('/api', apiLimiter);
 app.use('/api', apiRoutes);
 
+// Handle favicon request
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Serve static frontend assets
 const publicPath = path.join(__dirname, '..', 'public');
 app.use(express.static(publicPath));
