@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -58,16 +59,18 @@ app.use('/api', apiRoutes);
 // Handle favicon request
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Serve static frontend assets
+// Serve static frontend assets (Vite dist build or public fallback)
+const distPath = path.join(__dirname, '..', 'dist');
 const publicPath = path.join(__dirname, '..', 'public');
-app.use(express.static(publicPath));
+const staticPath = fs.existsSync(path.join(distPath, 'index.html')) ? distPath : publicPath;
+app.use(express.static(staticPath));
 
 // Fallback to index.html for SPA routing
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
-  res.sendFile(path.join(publicPath, 'index.html'));
+  res.sendFile(path.join(staticPath, 'index.html'));
 });
 
 // Centralized error handling
@@ -80,18 +83,31 @@ app.use((err, req, res, next) => {
 });
 
 // Start Server
-const server = app.listen(PORT, HOST, () => {
+const listenArgs = [];
+if (typeof PORT === 'number' || !isNaN(Number(PORT))) {
+  listenArgs.push(Number(PORT));
+  if (HOST) {
+    listenArgs.push(HOST);
+  }
+} else {
+  // Unix domain socket (Passenger / cPanel)
+  listenArgs.push(PORT);
+}
+
+listenArgs.push(() => {
   console.log('====================================================');
   console.log(`✨ Universal Video Downloader [Black & Gold]`);
-  console.log(`🚀 Server running at: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+  console.log(`🚀 Server listening on: ${PORT}`);
   console.log(`🛡️  SSRF Protection & Rate Limiting Active`);
   console.log('====================================================');
 });
 
+const server = app.listen(...listenArgs);
+
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`\n❌ Error: Port ${PORT} is already in use by another process.`);
-    console.error(`👉 Solution: Change PORT in .env or stop the process running on port ${PORT}.\n`);
+    console.error(`\n❌ Error: Port/Socket ${PORT} is already in use by another process.`);
+    console.error(`👉 Solution: Change PORT in .env or restart the process.\n`);
     process.exit(1);
   } else {
     console.error('Server error:', err);

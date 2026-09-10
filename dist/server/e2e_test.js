@@ -83,6 +83,7 @@ async function runE2ETests() {
 
   // Check if server is running; if targeting local and not running, launch it
   const isLocal = BASE_URL.hostname === 'localhost' || BASE_URL.hostname === '127.0.0.1';
+  let serverInstance = null;
 
   if (isLocal) {
     const running = await isServerRunning();

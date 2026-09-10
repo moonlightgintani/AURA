@@ -5,9 +5,11 @@
   "main": "app.js",
   "type": "commonjs",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "start": "node app.js",
-    "dev": "node --watch app.js",
-    "build": "node -e \"console.log('Build complete: Vanilla JS & Express require no compilation.')\"",
+    "server": "node app.js",
     "test": "node server/test.js"
   },
   "keywords": [
@@ -28,5 +30,8 @@
     "helmet": "^8.0.0",
     "ipaddr.js": "^2.2.0",
     "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
   }
 }
