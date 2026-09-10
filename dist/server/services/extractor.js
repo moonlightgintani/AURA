@@ -4,15 +4,16 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 const { formatBytes, formatDuration } = require('./security');
-const { MAX_DOWNLOAD_SIZE_BYTES, getExtractorCmd } = require('../config');
+const { MAX_DOWNLOAD_SIZE_BYTES } = require('../config');
+const { ensureYtDlp } = require('../utils/binResolver');
 
 /**
  * Extracts metadata and permitted formats using yt-dlp or direct stream headers.
  */
 async function extractMetadata(targetUrl) {
-  return new Promise((resolve, reject) => {
-    const { cmd, baseArgs } = getExtractorCmd();
+  const { cmd, baseArgs } = await ensureYtDlp();
 
+  return new Promise((resolve, reject) => {
     // Arguments for yt-dlp
     const args = [
       ...baseArgs,
