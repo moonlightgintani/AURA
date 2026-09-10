@@ -1,8 +1,12 @@
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
-PassengerAppRoot "/home/YOUR_CPANEL_USER/aura.srecieee.org"
+PassengerAppRoot "/home/dn8ig9njc6g9/aura.srecieee.org"
 PassengerBaseURI "/"
-PassengerNodejs "/home/YOUR_CPANEL_USER/nodevenv/aura.srecieee.org/20/bin/node"
+PassengerNodejs "/home/dn8ig9njc6g9/nodevenv/aura.srecieee.org/20/bin/node"
 PassengerAppType node
 PassengerStartupFile app.js
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
 
+# Fallback Passenger directive if CloudLinux tags differ
+<IfModule mod_passenger.c>
+    PassengerEnabled on
+</IfModule>
