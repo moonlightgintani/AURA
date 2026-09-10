@@ -1,8 +1,10 @@
 const path = require('path');
+const fs = require('fs');
+const { execSync } = require('child_process');
 require('dotenv').config();
 
-const PORT = parseInt(process.env.PORT, 10) || 5000;
-const HOST = process.env.HOST || '0.0.0.0';
+const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || null;
 
 // Storage paths
 const TEMP_DIR = process.env.TEMP_DIR 

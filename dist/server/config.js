@@ -1,4 +1,6 @@
 const path = require('path');
+const fs = require('fs');
+const { execSync } = require('child_process');
 require('dotenv').config();
 
 const PORT = parseInt(process.env.PORT, 10) || 5000;

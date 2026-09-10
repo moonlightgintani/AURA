@@ -80,18 +80,31 @@ app.use((err, req, res, next) => {
 });
 
 // Start Server
-const server = app.listen(PORT, HOST, () => {
+const listenArgs = [];
+if (typeof PORT === 'number' || !isNaN(Number(PORT))) {
+  listenArgs.push(Number(PORT));
+  if (HOST) {
+    listenArgs.push(HOST);
+  }
+} else {
+  // Unix domain socket (Passenger / cPanel)
+  listenArgs.push(PORT);
+}
+
+listenArgs.push(() => {
   console.log('====================================================');
   console.log(`✨ Universal Video Downloader [Black & Gold]`);
-  console.log(`🚀 Server running at: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+  console.log(`🚀 Server listening on: ${PORT}`);
   console.log(`🛡️  SSRF Protection & Rate Limiting Active`);
   console.log('====================================================');
 });
 
+const server = app.listen(...listenArgs);
+
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`\n❌ Error: Port ${PORT} is already in use by another process.`);
-    console.error(`👉 Solution: Change PORT in .env or stop the process running on port ${PORT}.\n`);
+    console.error(`\n❌ Error: Port/Socket ${PORT} is already in use by another process.`);
+    console.error(`👉 Solution: Change PORT in .env or restart the process.\n`);
     process.exit(1);
   } else {
     console.error('Server error:', err);
