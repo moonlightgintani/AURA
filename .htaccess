@@ -6,7 +6,24 @@ PassengerAppType node
 PassengerStartupFile app.js
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
 
-# Fallback Passenger directive if CloudLinux tags differ
-<IfModule mod_passenger.c>
-    PassengerEnabled on
+# Apache Fallback Routing (Runs on standard cPanel Shared Hosting)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 1. Route all /api/* endpoints to universal PHP bridge
+    RewriteRule ^api/(.*)$ api.php [QSA,L]
+    RewriteRule ^api$ api.php [QSA,L]
+
+    # 2. Allow direct access to existing files
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 3. Serve static assets from public/ if requested
+    RewriteCond %{DOCUMENT_ROOT}/public/$1 -f
+    RewriteRule ^(.*)$ public/$1 [L]
+
+    # 4. Fallback to index.html for SPA frontend
+    RewriteRule ^ index.html [L]
 </IfModule>
