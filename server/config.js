@@ -4,7 +4,7 @@ const { execSync } = require('child_process');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 5000;
-const HOST = process.env.HOST || null;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // Storage paths
 const TEMP_DIR = process.env.TEMP_DIR 
