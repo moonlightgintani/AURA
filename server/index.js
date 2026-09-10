@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -58,16 +59,18 @@ app.use('/api', apiRoutes);
 // Handle favicon request
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Serve static frontend assets
+// Serve static frontend assets (Vite dist build or public fallback)
+const distPath = path.join(__dirname, '..', 'dist');
 const publicPath = path.join(__dirname, '..', 'public');
-app.use(express.static(publicPath));
+const staticPath = fs.existsSync(path.join(distPath, 'index.html')) ? distPath : publicPath;
+app.use(express.static(staticPath));
 
 // Fallback to index.html for SPA routing
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
-  res.sendFile(path.join(publicPath, 'index.html'));
+  res.sendFile(path.join(staticPath, 'index.html'));
 });
 
 // Centralized error handling
