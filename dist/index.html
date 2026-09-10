@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AURA Video Downloader</title>
+  <meta name="description"
+    content="Modern, fast, and secure universal video downloader with gold luxury aesthetic. Download permitted high-definition videos in MP4, WebM, and MP3 formats.">
+  <meta name="theme-color" content="#08080a">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👑</text></svg>">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <!-- Ambient Gold Glows Background -->
+  <div class="ambient-glow glow-top"></div>
+  <div class="ambient-glow glow-bottom"></div>
+  <div class="gold-grid-overlay"></div>
+
+  <!-- App Wrapper -->
+  <div class="app-container">
+    <!-- Navigation Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-emblem">
+          <i class="fa-solid fa-crown gold-icon"></i>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">AURA</h1>
+          <span class="brand-subtitle">Universal Video Suite</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="history-toggle-btn" class="btn-gold-outline header-btn" title="Download History">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span class="btn-text">History</span>
+          <span id="history-badge" class="badge-count hidden">0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Hero Headline -->
+      <section class="hero-section">
+        <div class="badge-pill">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Secure SSRF Protection & Lossless Processing</span>
+        </div>
+        <h2 class="hero-title">
+          Universal <span class="gold-gradient-text">Media Extraction</span>
+        </h2>
+        <p class="hero-description">
+          Paste any permitted video URL to analyze available resolutions up to 4K UHD, extract pure audio streams, and
+          download at maximum throughput.
+        </p>
+      </section>
+
+      <!-- URL Input Section -->
+      <section class="input-card glass-panel">
+        <form id="analyze-form" class="url-form">
+          <div class="url-input-wrapper">
+            <span class="input-icon"><i class="fa-solid fa-link"></i></span>
+            <input type="url" id="video-url-input" class="url-input"
+              placeholder="Paste video URL here (e.g. https://...)" required autocomplete="off" spellcheck="false">
+            <button type="button" id="clear-input-btn" class="clear-btn hidden" title="Clear input">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+            <button type="button" id="paste-btn" class="btn-paste" title="Paste from clipboard">
+              <i class="fa-regular fa-clipboard"></i>
+              <span>Paste</span>
+            </button>
+          </div>
+
+          <button type="submit" id="analyze-btn" class="btn-gold-solid btn-analyze">
+            <span class="btn-label">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+              <span>Analyze Link</span>
+            </span>
+            <div class="spinner hidden"></div>
+          </button>
+        </form>
+
+        <!-- Quick Sample Videos Bar -->
+        <div class="quick-samples">
+          <span class="samples-label"><i class="fa-solid fa-bolt"></i> Test Links:</span>
+          <div class="sample-chips">
+            <button type="button" class="sample-chip" data-url="https://www.w3schools.com/html/mov_bbb.mp4" data-title="Big Buck Bunny Clip (MP4)">
+              <i class="fa-solid fa-film"></i> Big Buck Bunny
+            </button>
+            <button type="button" class="sample-chip" data-url="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" data-title="MDN Flower Sample (CC0 Video)">
+              <i class="fa-solid fa-film"></i> Flower Bloom (CC0)
+            </button>
+            <button type="button" class="sample-chip" data-url="https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c0/Big_Buck_Bunny_4K.webm/Big_Buck_Bunny_4K.webm.480p.vp9.webm" data-title="Wikimedia 480p VP9 Open WebM">
+              <i class="fa-solid fa-film"></i> Wikimedia WebM
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Analyzing Skeleton Loader -->
+      <section id="analysis-loader" class="glass-panel preview-card skeleton-card hidden">
+        <div class="skeleton-thumbnail">
+          <div class="skeleton-shimmer"></div>
+        </div>
+        <div class="skeleton-details">
+          <div class="skeleton-line skeleton-title"></div>
+          <div class="skeleton-line skeleton-subtitle"></div>
+          <div class="skeleton-grid">
+            <div class="skeleton-box"></div>
+            <div class="skeleton-box"></div>
+            <div class="skeleton-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Video Result Preview Card -->
+      <section id="video-preview-card" class="glass-panel preview-card hidden">
+        <div class="preview-layout">
+          <!-- Thumbnail & Quick Player -->
+          <div class="thumbnail-column">
+            <div class="thumbnail-wrapper" id="thumbnail-container">
+              <img id="video-thumb" src="" alt="Video thumbnail" class="video-thumb-img">
+              <div class="duration-badge" id="video-duration">0:00</div>
+              <button type="button" id="preview-play-btn" class="thumb-play-overlay" title="Preview video">
+                <i class="fa-solid fa-play"></i>
+              </button>
+            </div>
+            <div class="platform-meta">
+              <span id="platform-badge" class="pill-tag"><i class="fa-solid fa-globe"></i> Platform</span>
+              <span id="compliance-badge" class="pill-tag compliant"><i class="fa-solid fa-check"></i> Permitted</span>
+            </div>
+          </div>
+
+          <!-- Video Details & Selection -->
+          <div class="details-column">
+            <div class="video-header">
+              <h3 id="video-title" class="video-title">Video Title</h3>
+              <p id="video-uploader" class="video-uploader"><i class="fa-solid fa-user-circle"></i> Creator</p>
+            </div>
+
+            <!-- Tab Switcher: Video vs Audio -->
+            <div class="media-type-tabs">
+              <button type="button" id="tab-video" class="type-tab active">
+                <i class="fa-solid fa-video"></i> Video & Audio
+              </button>
+              <button type="button" id="tab-audio" class="type-tab">
+                <i class="fa-solid fa-music"></i> Audio Only (MP3 / M4A)
+              </button>
+            </div>
+
+            <!-- Quality & Format Selector Matrix -->
+            <div class="selector-section">
+              <div class="section-subhead">
+                <span>Select Quality & Format</span>
+                <span id="selected-size-estimate" class="size-estimate-badge">Estimated: -- MB</span>
+              </div>
+
+              <!-- Format Options Grid (Generated Dynamically) -->
+              <div id="format-options-grid" class="format-grid">
+                <!-- Dynamically populated options -->
+              </div>
+            </div>
+
+            <!-- Action Download Area -->
+            <div class="download-action-bar">
+              <button type="button" id="start-download-btn" class="btn-gold-solid btn-download-action">
+                <i class="fa-solid fa-circle-down"></i>
+                <span id="download-btn-text">Download Selected Format</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Download Progress Monitor -->
+      <section id="download-progress-card" class="glass-panel progress-card hidden">
+        <div class="progress-header">
+          <div class="progress-title-wrap">
+            <div class="pulse-indicator"></div>
+            <div>
+              <h4 id="progress-job-title" class="progress-filename">Downloading video...</h4>
+              <p id="progress-status-desc" class="progress-substatus">Processing stream from source</p>
+            </div>
+          </div>
+          <button type="button" id="cancel-download-btn" class="btn-cancel" title="Cancel Download">
+            <i class="fa-solid fa-circle-xmark"></i>
+            <span>Cancel</span>
+          </button>
+        </div>
+
+        <!-- Animated Gold Progress Bar -->
+        <div class="progress-bar-container">
+          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;">
+            <div class="progress-glow-point"></div>
+          </div>
+        </div>
+
+        <!-- Progress Metrics Display -->
+        <div class="progress-metrics-grid">
+          <div class="metric-item">
+            <span class="metric-label">Progress</span>
+            <span id="metric-percent" class="metric-value gold-text">0%</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Transfer Speed</span>
+            <span id="metric-speed" class="metric-value">-- MB/s</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Estimated Time</span>
+            <span id="metric-eta" class="metric-value">--:--</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Target Format</span>
+            <span id="metric-format" class="metric-value">MP4</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Completed Download Card -->
+      <section id="download-success-card" class="glass-panel success-card hidden">
+        <div class="success-icon-wrap">
+          <i class="fa-solid fa-circle-check gold-icon"></i>
+        </div>
+        <div class="success-content">
+          <h3 class="success-title">Download Completed!</h3>
+          <p id="success-filename" class="success-filename">video.mp4</p>
+          <div class="success-actions">
+            <a id="success-save-btn" href="#" class="btn-gold-solid btn-save-again" download>
+              <i class="fa-solid fa-download"></i> Save to Device Again
+            </a>
+            <button type="button" id="success-play-btn" class="btn-gold-outline">
+              <i class="fa-solid fa-play"></i> Play in Browser
+            </button>
+            <button type="button" id="download-another-btn" class="btn-secondary">
+              <i class="fa-solid fa-plus"></i> Download Another
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Security & Permitted Compliance Guarantee -->
+      <section class="compliance-footer-card glass-panel">
+        <div class="compliance-features">
+          <div class="feature-box">
+            <i class="fa-solid fa-shield-virus gold-icon"></i>
+            <h5>SSRF & DNS Guard</h5>
+            <p>Host verification prevents unauthorized intranet and internal network requests.</p>
+          </div>
+          <div class="feature-box">
+            <i class="fa-solid fa-scale-balanced gold-icon"></i>
+            <h5>Compliance First</h5>
+            <p>Respects DRM, access controls, and platform terms. Downloads only permitted media.</p>
+          </div>
+          <div class="feature-box">
+            <i class="fa-solid fa-trash-can-arrow-up gold-icon"></i>
+            <h5>Auto Temp Cleanup</h5>
+            <p>Temporary download files are purged automatically after streaming to preserve privacy.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Download History Drawer / Sidebar -->
+    <aside id="history-drawer" class="history-drawer">
+      <div class="drawer-backdrop" id="drawer-backdrop"></div>
+      <div class="drawer-panel">
+        <div class="drawer-header">
+          <div class="drawer-title">
+            <i class="fa-solid fa-clock-rotate-left gold-icon"></i>
+            <h3>Download History</h3>
+          </div>
+          <div class="drawer-header-actions">
+            <button type="button" id="clear-history-btn" class="btn-clear-history" title="Clear all history">
+              <i class="fa-solid fa-trash"></i> Clear All
+            </button>
+            <button type="button" id="close-history-btn" class="btn-close-drawer" title="Close history">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="history-list" class="history-list">
+          <!-- Dynamically populated or empty state -->
+          <div class="empty-history" id="empty-history-state">
+            <i class="fa-solid fa-folder-open gold-icon"></i>
+            <p>No downloads yet</p>
+            <span>Analyzed and downloaded videos will appear here.</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Video Preview Modal Player -->
+    <div id="video-player-modal" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h4 id="modal-player-title" class="modal-title">Video Preview</h4>
+          <button type="button" id="close-modal-btn" class="btn-close-modal">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <video id="modal-video-element" controls playsinline class="modal-video"></video>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/history.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>
