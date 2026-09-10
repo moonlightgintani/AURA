@@ -94,42 +94,109 @@ function validateSSRF($rawUrl) {
 // Detect Extractor Binary (yt-dlp or python3 -m yt_dlp)
 function getExtractorCommand() {
     $binPath = __DIR__ . '/server/bin/yt-dlp';
-    if (file_exists($binPath)) {
+    if (file_exists($binPath) && filesize($binPath) > 50000) {
         @chmod($binPath, 0755);
         return escapeshellcmd($binPath);
     }
 
-    // Try which yt-dlp
-    $whichYt = trim(@shell_exec('which yt-dlp 2>/dev/null'));
-    if ($whichYt && file_exists($whichYt)) {
-        return escapeshellcmd($whichYt);
+    // Try common python and yt-dlp binary locations
+    $candidates = [
+        'yt-dlp',
+        getenv('HOME') . '/.local/bin/yt-dlp',
+        '/usr/local/bin/yt-dlp',
+        'python3.12 -m yt_dlp',
+        'python3.11 -m yt_dlp',
+        'python3.10 -m yt_dlp',
+        'python3.9 -m yt_dlp',
+        'python3.8 -m yt_dlp',
+        'python3 -m yt_dlp',
+        'python -m yt_dlp'
+    ];
+
+    foreach ($candidates as $cand) {
+        $check = @shell_exec($cand . ' --version 2>/dev/null');
+        if ($check && preg_match('/\d{4}\.\d{2}\.\d{2}/', trim($check))) {
+            return $cand;
+        }
     }
 
-    // Try python3
-    $pyCheck = @shell_exec('python3 -c "import yt_dlp; print(1)" 2>/dev/null');
-    if (trim($pyCheck) === '1') {
-        return 'python3 -m yt_dlp';
-    }
-
-    // Try python
-    $pyCheck2 = @shell_exec('python -c "import yt_dlp; print(1)" 2>/dev/null');
-    if (trim($pyCheck2) === '1') {
-        return 'python -m yt_dlp';
-    }
-
-    // Download standalone yt-dlp into server/bin if missing
+    // Download standalone yt-dlp binary via cURL with redirect handling into server/bin
     $binDir = __DIR__ . '/server/bin';
     if (!is_dir($binDir)) {
-        @mkdir($binDir, 0755, true);
-    }
-    $dl = @file_get_contents('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp');
-    if ($dl && strlen($dl) > 10000) {
-        @file_put_contents($binPath, $dl);
-        @chmod($binPath, 0755);
-        return escapeshellcmd($binPath);
+        @mkdir($binDir, 0777, true);
     }
 
-    return 'python3 -m yt_dlp';
+    if (function_exists('curl_init')) {
+        $ch = curl_init('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp');
+        $fp = @fopen($binPath, 'wb');
+        if ($fp) {
+            curl_setopt($ch, CURLOPT_FILE, $fp);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0');
+            curl_exec($ch);
+            curl_close($ch);
+            fclose($fp);
+
+            if (file_exists($binPath) && filesize($binPath) > 50000) {
+                @chmod($binPath, 0755);
+                return escapeshellcmd($binPath);
+            }
+        }
+    }
+
+    return 'yt-dlp';
+}
+
+// Inspect direct media URL
+function inspectDirectMedia($mediaUrl) {
+    $parsed = parse_url($mediaUrl);
+    $path = $parsed['path'] ?? '';
+    $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    $validExts = ['mp4', 'webm', 'mkv', 'mov', 'avi', 'mp3', 'm4a', 'wav', 'aac', 'flac', 'ogg'];
+
+    if (!in_array($ext, $validExts)) {
+        return null;
+    }
+
+    $size = 0;
+    if (function_exists('curl_init')) {
+        $ch = curl_init($mediaUrl);
+        curl_setopt($ch, CURLOPT_NOBODY, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_exec($ch);
+        $size = (int)curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
+        curl_close($ch);
+    }
+
+    $filename = pathinfo($path, PATHINFO_FILENAME) ?: 'direct_media';
+    $title = ucwords(str_replace(['_', '-'], ' ', $filename));
+
+    return [
+        'id' => md5($mediaUrl),
+        'title' => $title,
+        'duration' => 0,
+        'durationFormatted' => '--:--',
+        'uploader' => 'Direct Stream',
+        'platform' => 'Direct Link',
+        'thumbnail' => '',
+        'url' => $mediaUrl,
+        'formats' => [
+            [
+                'formatId' => 'direct-original',
+                'formatNote' => 'Direct Stream',
+                'resolution' => 'Original',
+                'quality' => 'Best Quality',
+                'ext' => $ext,
+                'filesize' => $size > 0 ? $size : null,
+                'filesizeFormatted' => formatBytes($size),
+                'type' => in_array($ext, ['mp3', 'm4a', 'wav', 'aac', 'flac', 'ogg']) ? 'audio' : 'video'
+            ]
+        ]
+    ];
 }
 
 /* =========================================================================
@@ -159,22 +226,24 @@ if (($route === 'analyze' || $route === 'api/analyze') && $method === 'POST') {
         $cmd = $extractor . ' --dump-single-json --no-warnings --no-playlist --no-check-certificates --socket-timeout 20 ' . escapeshellarg($validatedUrl) . ' 2>&1';
         $output = shell_exec($cmd);
 
-        if (!$output || empty(trim($output))) {
-            throw new Exception('Extractor engine produced no response. Target media might be inaccessible.');
-        }
-
         // Find JSON boundaries
-        $start = strpos($output, '{');
-        $end = strrpos($output, '}');
+        $start = $output ? strpos($output, '{') : false;
+        $end = $output ? strrpos($output, '}') : false;
+
         if ($start === false || $end === false || $end < $start) {
-            // Check known error messages
-            if (stripos($output, 'drm') !== false) {
+            // Direct media fallback
+            $directMeta = inspectDirectMedia($validatedUrl);
+            if ($directMeta) {
+                sendJson(['success' => true, 'data' => $directMeta]);
+            }
+
+            if ($output && stripos($output, 'drm') !== false) {
                 throw new Exception('This video is protected by DRM (Digital Rights Management) and cannot be downloaded.');
             }
-            if (stripos($output, 'private') !== false || stripos($output, 'sign in') !== false) {
+            if ($output && (stripos($output, 'private') !== false || stripos($output, 'sign in') !== false)) {
                 throw new Exception('This video is private or requires sign-in authentication.');
             }
-            throw new Exception('Could not extract media metadata: ' . substr(strip_tags($output), 0, 150));
+            throw new Exception('Could not extract media metadata. Please ensure yt-dlp is installed on server.');
         }
 
         $jsonStr = substr($output, $start, $end - $start + 1);
