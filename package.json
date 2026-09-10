@@ -28,5 +28,8 @@
     "helmet": "^8.0.0",
     "ipaddr.js": "^2.2.0",
     "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
   }
 }
