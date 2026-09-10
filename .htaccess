@@ -1,0 +1,22 @@
+# ===================================================
+# cPanel / Apache Configuration for AURA
+# ===================================================
+
+# 1. Allow Directory Index and Fallback
+DirectoryIndex index.html public/index.html
+
+# 2. Phusion Passenger Node.js Configuration (Auto-managed by cPanel Setup Node.js App)
+# If your cPanel uses CloudLinux / Passenger, ensure the app is started in "Setup Node.js App".
+
+# 3. Apache URL Rewrites
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Prevent 403 Forbidden by routing root to public/
+    RewriteCond %{REQUEST_URI} ^/$
+    RewriteRule ^$ public/index.html [L]
+
+    # Serve files from public folder if they exist
+    RewriteCond %{DOCUMENT_ROOT}/public/%{REQUEST_URI} -f
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
